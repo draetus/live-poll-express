@@ -1,0 +1,14 @@
+/* Tailwind v4: uma linha substitui o antigo tailwind.config.js + diretivas @tailwind. */
+@import "tailwindcss";
+
+/* @theme cria/sobrescreve "design tokens". Cada variável vira classes utilitárias:
+   --font-sans → font-sans; --color-brand-500 → bg-brand-500, text-brand-500, etc. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-brand-50: var(--color-indigo-50);
+  --color-brand-100: var(--color-indigo-100);
+  --color-brand-500: var(--color-indigo-500);
+  --color-brand-600: var(--color-indigo-600);
+  --color-brand-700: var(--color-indigo-700);
+}

@@ -1,0 +1,7 @@
+{
+  // "Solution" config: não checa nada sozinho, só aponta para os dois projetos abaixo.
+  // O código do navegador (src) e o do Node (vite.config.ts) têm ambientes diferentes:
+  // um tem `document` e `window`, o outro tem `process` e `node:url`.
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

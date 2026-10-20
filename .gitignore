@@ -1,0 +1,25 @@
+# Dependências (recriadas com `npm ci`)
+node_modules/
+
+# Saídas de build
+dist/
+coverage/
+
+# Variáveis de ambiente locais (nunca versionar segredos)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Vercel CLI
+.vercel

@@ -1,0 +1,18 @@
+{
+  // Config de TYPECHECK (npm run typecheck e editor): cobre src, test e shared.
+  // O build de produção usa tsconfig.build.json, que estende este arquivo.
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src", "test", "../shared", "vitest.config.ts"]
+}

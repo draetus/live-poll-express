@@ -1,0 +1,11 @@
+{
+  // Config de BUILD: compila só o código de produção (src + shared) para dist/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "..", // engloba api/src e shared/ → saída em dist/api/src e dist/shared
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src", "../shared"]
+}

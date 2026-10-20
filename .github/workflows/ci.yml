@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# Um push novo no mesmo branch cancela a execução anterior, que ficou obsoleta.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Install (root, api, web)
+        run: |
+          npm ci
+          npm ci --prefix api
+          npm ci --prefix web
+
+      - name: Lint and format check (Biome)
+        run: npm run lint
+
+      - name: API — typecheck, test, build
+        run: |
+          npm run typecheck --prefix api
+          npm test --prefix api
+          npm run build --prefix api
+
+      - name: Web — typecheck, test, build
+        env:
+          # O build de produção exige as URLs; no CI, valores de exemplo bastam.
+          VITE_API_URL: https://api.example.com
+          VITE_WS_URL: wss://api.example.com/ws
+        run: |
+          npm run typecheck --prefix web
+          npm test --prefix web
+          npm run build --prefix web

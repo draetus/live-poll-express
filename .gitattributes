@@ -1,0 +1,10 @@
+# Normaliza finais de linha para LF no repositório e no checkout,
+# inclusive no Windows. O Biome formata com LF; sem isto, o Git no
+# Windows pode converter para CRLF e o lint acusar o repo inteiro.
+* text=auto eol=lf
+
+# Binários: nunca mexer
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary

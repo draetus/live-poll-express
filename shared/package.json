@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "Shared TypeScript contracts. Not an installable package: no dependencies, imported by relative path (api/) or alias (web/). This file only declares the folder as ES modules.",
+  "type": "module"
+}
