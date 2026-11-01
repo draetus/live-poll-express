@@ -1,0 +1,17 @@
+[
+  {
+    "id": "seedTabs",
+    "question": "Tabs or spaces?",
+    "options": ["Tabs", "Spaces", "Whatever the formatter says"]
+  },
+  {
+    "id": "seedLang",
+    "question": "Which language would you pick for a new backend?",
+    "options": ["TypeScript", "Go", "Java", "Python", "Rust"]
+  },
+  {
+    "id": "seedCafe",
+    "question": "What keeps you going while coding?",
+    "options": ["Coffee", "Tea", "Mate", "Water, I'm hydrated"]
+  }
+]

@@ -19,6 +19,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(0).max(65_535).default(3000),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   CORS_ORIGINS: originList.default(["http://localhost:5173"]),
+  // Máximo de enquetes criadas por usuários em memória (as do seed não contam).
+  MAX_POLLS: z.coerce.number().int().min(1).default(500),
 });
 
 export type Env = z.infer<typeof envSchema>;

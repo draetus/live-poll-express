@@ -10,6 +10,7 @@ describe("parseEnv", () => {
       PORT: 3000,
       LOG_LEVEL: "info",
       CORS_ORIGINS: ["http://localhost:5173"],
+      MAX_POLLS: 500,
     });
   });
 
@@ -39,6 +40,7 @@ describe("parseEnv", () => {
     ["CORS origin is not a URL", { CORS_ORIGINS: "not-a-url" }],
     ["CORS_ORIGINS empty", { CORS_ORIGINS: " , " }],
     ["CORS_ORIGINS missing in production", { NODE_ENV: "production" }],
+    ["MAX_POLLS is zero", { MAX_POLLS: "0" }],
   ])("throws when %s", (_label, source) => {
     expect(() => parseEnv(source)).toThrow(/Invalid environment variables/);
   });
