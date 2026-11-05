@@ -3,7 +3,7 @@ import { loadEnv } from "./config/env.js";
 
 // Entrypoint: única parte do código com efeitos "globais" (porta, sinais, process.exit).
 const env = loadEnv();
-const { server, logger } = buildServer(env);
+const { server, wss, logger } = buildServer(env);
 
 server.on("error", (err) => {
   // Ex.: EADDRINUSE quando a porta já está ocupada por outro processo.
@@ -22,6 +22,11 @@ function shutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info({ signal }, "shutting down");
+
+  // Conexões WebSocket não terminam sozinhas: avisamos com 1001 ("going away"),
+  // e o cliente do front reconecta quando o servidor novo subir.
+  for (const ws of wss.clients) ws.close(1001, "Server shutting down");
+  wss.close(); // para o heartbeat
 
   server.close((err) => {
     if (err) logger.error({ err }, "error while closing server");
