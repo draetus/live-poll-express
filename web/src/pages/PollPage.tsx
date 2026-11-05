@@ -1,16 +1,116 @@
+import type { PollView } from "@shared/api";
+import { useState } from "react";
 import { Link, useParams } from "react-router";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { ResultBars } from "../features/polls/components/ResultBars";
+import { VoteOptions } from "../features/polls/components/VoteOptions";
+import { usePoll } from "../features/polls/hooks/usePoll";
+import { useVote } from "../features/polls/hooks/useVote";
 
 export function PollPage() {
-  // useParams lê os segmentos dinâmicos da URL: em /p/AbC23xyz, pollId = "AbC23xyz"
-  const { pollId } = useParams();
+  const { pollId = "" } = useParams();
+  // key={pollId}: ao navegar de uma enquete para outra, o React Router REAPROVEITA
+  // este componente. A key diferente força o React a criar um PollScreen novo,
+  // com todo o estado (voto, erros, dados) zerado.
+  return <PollScreen key={pollId} pollId={pollId} />;
+}
+
+function PollScreen({ pollId }: { pollId: string }) {
+  const { state, reload, setPoll } = usePoll(pollId);
+
+  if (state.status === "loading") {
+    return <p className="text-slate-500">Loading poll…</p>;
+  }
+
+  if (state.status === "not-found") {
+    return (
+      <section className="space-y-3">
+        <h1 className="text-2xl font-bold">Poll not found</h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          This poll does not exist or has expired. Polls live in memory, so they disappear when the
+          server restarts.
+        </p>
+        <Link to="/" className="text-brand-600 underline dark:text-brand-500">
+          Create a new poll
+        </Link>
+      </section>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <section className="space-y-3">
+        <p role="alert" className="text-rose-600 dark:text-rose-400">
+          {state.message}
+        </p>
+        <Button variant="secondary" onClick={reload}>
+          Try again
+        </Button>
+      </section>
+    );
+  }
+
+  return <PollDetails poll={state.poll} onPoll={setPoll} onStale={reload} />;
+}
+
+interface PollDetailsProps {
+  poll: PollView;
+  onPoll(poll: PollView): void;
+  onStale(): void;
+}
+
+function PollDetails({ poll, onPoll, onStale }: PollDetailsProps) {
+  const { myVote, vote, submitting, error } = useVote(poll.id, { onVoted: onPoll, onStale });
+  const [showResults, setShowResults] = useState(false);
+  const canVote = !poll.closed && !myVote;
 
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-bold">Poll {pollId}</h1>
-      <p className="text-slate-600 dark:text-slate-400">
-        Voting and live results arrive in phases 4 and 5.
-      </p>
-      <Link to={`/p/${pollId}/present`} className="text-brand-600 underline dark:text-brand-500">
+    <section className="space-y-6">
+      <header className="space-y-2">
+        {poll.closed && (
+          <span className="inline-block rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium dark:bg-slate-800">
+            Closed
+          </span>
+        )}
+        <h1 className="text-2xl font-bold">{poll.question}</h1>
+        <p className="text-sm text-slate-500 tabular-nums">
+          {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
+        </p>
+      </header>
+
+      <Card className="space-y-4">
+        {canVote && !showResults ? (
+          <VoteOptions options={poll.options} onVote={vote} submitting={submitting} />
+        ) : (
+          <ResultBars poll={poll} myOptionId={myVote?.optionId} />
+        )}
+
+        {myVote && (
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {myVote.optionId === null
+              ? "You have already voted on this poll."
+              : `You voted for “${poll.options.find((o) => o.id === myVote.optionId)?.text}”.`}
+          </p>
+        )}
+
+        {error && (
+          <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">
+            {error}
+          </p>
+        )}
+
+        {canVote && (
+          <Button variant="ghost" onClick={() => setShowResults((v) => !v)}>
+            {showResults ? "Back to voting" : "See results"}
+          </Button>
+        )}
+      </Card>
+
+      <Link
+        to={`/p/${poll.id}/present`}
+        className="text-sm text-brand-600 underline dark:text-brand-500"
+      >
         Presentation mode
       </Link>
     </section>

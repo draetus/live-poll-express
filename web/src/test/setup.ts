@@ -7,4 +7,6 @@ import { afterEach, vi } from "vitest";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  localStorage.clear(); // voto, voterId e tokens de um teste não podem afetar o próximo
 });
