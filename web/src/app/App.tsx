@@ -4,6 +4,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { PollPage } from "../pages/PollPage";
 import { PresentPage } from "../pages/PresentPage";
 import { Layout } from "./Layout";
+import { RealtimeProvider } from "./RealtimeProvider";
 
 // Separado do <App> para os testes poderem trocar o BrowserRouter por um MemoryRouter.
 export function AppRoutes() {
@@ -24,7 +25,10 @@ export function AppRoutes() {
 export function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      {/* Uma conexão WebSocket por aba, disponível para qualquer página */}
+      <RealtimeProvider>
+        <AppRoutes />
+      </RealtimeProvider>
     </BrowserRouter>
   );
 }

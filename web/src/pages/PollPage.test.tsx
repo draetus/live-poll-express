@@ -1,8 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, type NavigateFunction, useNavigate } from "react-router";
 import { describe, expect, it } from "vitest";
-import { AppRoutes } from "../app/App";
 import { getVote, saveVote } from "../features/polls/storage";
 import { apiError, delayed, json, makePollView, mockApi } from "../test/mock-api";
 import { renderApp } from "../test/render-app";
@@ -114,23 +112,11 @@ describe("PollPage", () => {
       "GET /polls/pollAbc2": () => json(poll),
       "GET /polls/otherPo2": () => json(makePollView({ id: "otherPo2", question: "Other?" })),
     });
-    let navigate: NavigateFunction = () => {};
-    function CaptureNavigate() {
-      navigate = useNavigate();
-      return null;
-    }
-    render(
-      <MemoryRouter initialEntries={["/p/pollAbc2"]}>
-        <CaptureNavigate />
-        <AppRoutes />
-      </MemoryRouter>,
-    );
+    const { navigate } = renderApp("/p/pollAbc2");
     expect(await screen.findByText("You voted for “Saturday”.")).toBeDefined();
 
     // Mesma rota (/p/:pollId), outro ID: o React Router reaproveita a PollPage.
-    act(() => {
-      void navigate("/p/otherPo2");
-    });
+    navigate("/p/otherPo2");
 
     expect(await screen.findByRole("heading", { name: "Other?" })).toBeDefined();
     expect(screen.queryByText(/You voted/)).toBeNull();
@@ -147,6 +133,105 @@ describe("PollPage", () => {
     expect(screen.getByText("Loading poll…")).toBeDefined();
 
     expect(await screen.findByRole("heading", { name: "Best day?" })).toBeDefined();
+  });
+
+  describe("real time", () => {
+    async function openLive() {
+      mockApi({ "GET /polls/pollAbc2": () => json(poll) });
+      const app = renderApp("/p/pollAbc2");
+      await screen.findByRole("heading", { name: "Best day?" });
+      const socket = app.sockets.latest();
+      // act(): avisa o React que vamos causar atualizações de estado fora de um evento
+      // de usuário, e espera ele terminar de redesenhar antes de seguirmos.
+      act(() => socket.open());
+      return { ...app, socket };
+    }
+
+    it("subscribes to the poll and shows how many people are watching", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.receive({ type: "viewers", pollId: "pollAbc2", count: 3 }));
+
+      expect(socket.sent).toEqual([{ type: "subscribe", pollId: "pollAbc2" }]);
+      expect(screen.getByText("Live · 3 watching")).toBeDefined();
+    });
+
+    it("updates the bars when someone else votes", async () => {
+      const user = userEvent.setup();
+      const { socket } = await openLive();
+      await user.click(screen.getByRole("button", { name: "See results" }));
+
+      act(() =>
+        socket.receive({
+          type: "poll:updated",
+          pollId: "pollAbc2",
+          totals: { "1": 1, "2": 3 },
+          totalVotes: 4,
+        }),
+      );
+
+      expect(screen.getByText("75% · 3")).toBeDefined();
+      expect(screen.getByText("4 votes")).toBeDefined();
+    });
+
+    it("stops accepting votes when the poll is closed live", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.receive({ type: "poll:closed", pollId: "pollAbc2" }));
+
+      expect(screen.getByText("Closed")).toBeDefined();
+      expect(screen.queryByRole("button", { name: "Vote" })).toBeNull();
+    });
+
+    it("explains when the poll is removed by the memory limit", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.receive({ type: "poll:removed", pollId: "pollAbc2" }));
+
+      expect(screen.getByRole("alert").textContent).toMatch(/removed to free up memory/);
+      expect(screen.queryByRole("button", { name: "Vote" })).toBeNull();
+    });
+
+    it("explains when the server restarted and forgot the poll", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.receive({ type: "error", code: "POLL_NOT_FOUND", message: "x" }));
+
+      expect(screen.getByRole("alert").textContent).toMatch(/server restarted/);
+    });
+
+    it("shows 'Reconnecting…' when the connection drops", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.drop());
+
+      expect(screen.getByText("Reconnecting…")).toBeDefined();
+    });
+
+    it("ignores messages about other polls", async () => {
+      const { socket } = await openLive();
+
+      act(() => socket.receive({ type: "poll:closed", pollId: "otherPo2" }));
+      // Ex.: snapshot da enquete anterior, que chegou antes do servidor processar o unsubscribe
+      act(() =>
+        socket.receive({
+          type: "poll:snapshot",
+          poll: makePollView({ id: "otherPo2", question: "Other?" }),
+        }),
+      );
+
+      expect(screen.queryByText("Closed")).toBeNull();
+      expect(screen.getByRole("heading", { name: "Best day?" })).toBeDefined();
+    });
+
+    it("unsubscribes when leaving the page", async () => {
+      const { socket, navigate } = await openLive();
+      mockApi({ "GET /health": () => json({ status: "ok" }), "GET /polls": () => json([]) });
+
+      navigate("/");
+
+      expect(socket.sent.at(-1)).toEqual({ type: "unsubscribe", pollId: "pollAbc2" });
+    });
   });
 
   it("can peek at the results before voting", async () => {

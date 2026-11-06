@@ -3,10 +3,13 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { LiveStatus } from "../features/polls/components/LiveStatus";
 import { ResultBars } from "../features/polls/components/ResultBars";
 import { VoteOptions } from "../features/polls/components/VoteOptions";
 import { usePoll } from "../features/polls/hooks/usePoll";
 import { useVote } from "../features/polls/hooks/useVote";
+import type { PollEnding } from "../features/polls/poll-reducer";
+import type { ConnectionState } from "../lib/realtime-client";
 
 export function PollPage() {
   const { pollId = "" } = useParams();
@@ -17,7 +20,7 @@ export function PollPage() {
 }
 
 function PollScreen({ pollId }: { pollId: string }) {
-  const { state, reload, setPoll } = usePoll(pollId);
+  const { state, reload, applyVote } = usePoll(pollId);
 
   if (state.status === "loading") {
     return <p className="text-slate-500">Loading poll…</p>;
@@ -51,19 +54,37 @@ function PollScreen({ pollId }: { pollId: string }) {
     );
   }
 
-  return <PollDetails poll={state.poll} onPoll={setPoll} onStale={reload} />;
+  return (
+    <PollDetails
+      poll={state.poll}
+      viewers={state.viewers}
+      ended={state.ended}
+      connection={state.connection}
+      onVoted={applyVote}
+      onStale={reload}
+    />
+  );
 }
+
+const ENDING_MESSAGES: Record<PollEnding, string> = {
+  removed: "This poll was removed to free up memory. The results below are the last ones received.",
+  "server-restarted":
+    "This poll expired because the server restarted (polls live in memory). The results below are the last ones received.",
+};
 
 interface PollDetailsProps {
   poll: PollView;
-  onPoll(poll: PollView): void;
+  viewers: number | null;
+  ended: PollEnding | null;
+  connection: ConnectionState;
+  onVoted(poll: PollView): void;
   onStale(): void;
 }
 
-function PollDetails({ poll, onPoll, onStale }: PollDetailsProps) {
-  const { myVote, vote, submitting, error } = useVote(poll.id, { onVoted: onPoll, onStale });
+function PollDetails({ poll, viewers, ended, connection, onVoted, onStale }: PollDetailsProps) {
+  const { myVote, vote, submitting, error } = useVote(poll.id, { onVoted, onStale });
   const [showResults, setShowResults] = useState(false);
-  const canVote = !poll.closed && !myVote;
+  const canVote = !poll.closed && !myVote && !ended;
 
   return (
     <section className="space-y-6">
@@ -74,10 +95,25 @@ function PollDetails({ poll, onPoll, onStale }: PollDetailsProps) {
           </span>
         )}
         <h1 className="text-2xl font-bold">{poll.question}</h1>
-        <p className="text-sm text-slate-500 tabular-nums">
-          {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <p className="text-sm text-slate-500 tabular-nums">
+            {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
+          </p>
+          {!ended && <LiveStatus viewers={viewers} connection={connection} />}
+        </div>
       </header>
+
+      {ended && (
+        <p
+          role="alert"
+          className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+        >
+          {ENDING_MESSAGES[ended]}{" "}
+          <Link to="/" className="underline">
+            Create a new poll
+          </Link>
+        </p>
+      )}
 
       <Card className="space-y-4">
         {canVote && !showResults ? (
