@@ -3,9 +3,12 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { AdminPanel } from "../features/polls/components/AdminPanel";
 import { LiveStatus } from "../features/polls/components/LiveStatus";
 import { ResultBars } from "../features/polls/components/ResultBars";
+import { SharePanel } from "../features/polls/components/SharePanel";
 import { VoteOptions } from "../features/polls/components/VoteOptions";
+import { useAdminToken } from "../features/polls/hooks/useAdminToken";
 import { usePoll } from "../features/polls/hooks/usePoll";
 import { useVote } from "../features/polls/hooks/useVote";
 import type { PollEnding } from "../features/polls/poll-reducer";
@@ -20,7 +23,10 @@ export function PollPage() {
 }
 
 function PollScreen({ pollId }: { pollId: string }) {
-  const { state, reload, applyVote } = usePoll(pollId);
+  const { state, reload, applyPoll } = usePoll(pollId);
+  // Antes dos `return`s abaixo: hooks não podem ser chamados condicionalmente.
+  // Ler o link de admin já aqui também tira o #admin=... da URL enquanto a enquete carrega.
+  const admin = useAdminToken(pollId);
 
   if (state.status === "loading") {
     return <p className="text-slate-500">Loading poll…</p>;
@@ -60,7 +66,10 @@ function PollScreen({ pollId }: { pollId: string }) {
       viewers={state.viewers}
       ended={state.ended}
       connection={state.connection}
-      onVoted={applyVote}
+      adminToken={admin.token}
+      adminRejected={admin.rejected}
+      onPollChanged={applyPoll}
+      onAdminRejected={admin.reject}
       onStale={reload}
     />
   );
@@ -77,12 +86,29 @@ interface PollDetailsProps {
   viewers: number | null;
   ended: PollEnding | null;
   connection: ConnectionState;
-  onVoted(poll: PollView): void;
+  adminToken: string | undefined;
+  adminRejected: boolean;
+  /** Uma resposta da API trouxe a enquete atualizada (voto ou encerramento). */
+  onPollChanged(poll: PollView): void;
+  onAdminRejected(): void;
   onStale(): void;
 }
 
-function PollDetails({ poll, viewers, ended, connection, onVoted, onStale }: PollDetailsProps) {
-  const { myVote, vote, submitting, error } = useVote(poll.id, { onVoted, onStale });
+function PollDetails({
+  poll,
+  viewers,
+  ended,
+  connection,
+  adminToken,
+  adminRejected,
+  onPollChanged,
+  onAdminRejected,
+  onStale,
+}: PollDetailsProps) {
+  const { myVote, vote, submitting, error } = useVote(poll.id, {
+    onVoted: onPollChanged,
+    onStale,
+  });
   const [showResults, setShowResults] = useState(false);
   const canVote = !poll.closed && !myVote && !ended;
 
@@ -143,12 +169,23 @@ function PollDetails({ poll, viewers, ended, connection, onVoted, onStale }: Pol
         )}
       </Card>
 
-      <Link
-        to={`/p/${poll.id}/present`}
-        className="text-sm text-brand-600 underline dark:text-brand-500"
-      >
-        Presentation mode
-      </Link>
+      {adminRejected && (
+        <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">
+          This admin link is not valid for this poll, so the admin options were removed.
+        </p>
+      )}
+
+      {/* Enquete que sumiu do servidor: não há o que compartilhar nem encerrar. */}
+      {!ended && <SharePanel pollId={poll.id} />}
+      {!ended && adminToken && (
+        <AdminPanel
+          poll={poll}
+          token={adminToken}
+          onClosed={onPollChanged}
+          onForbidden={onAdminRejected}
+          onStale={onStale}
+        />
+      )}
     </section>
   );
 }

@@ -49,7 +49,7 @@ describe("REST actions", () => {
     const voted = makePollView({ totalVotes: 1 });
 
     expect(
-      readyPoll(reduce({ type: "loaded", poll }, { type: "voted", poll: voted })).poll,
+      readyPoll(reduce({ type: "loaded", poll }, { type: "received", poll: voted })).poll,
     ).toEqual(voted);
   });
 
@@ -57,7 +57,7 @@ describe("REST actions", () => {
     const state = reduce(
       { type: "loaded", poll },
       { type: "updated", pollId: poll.id, totals: { "1": 1, "2": 1 }, totalVotes: 2 },
-      { type: "voted", poll: makePollView({ totalVotes: 1 }) }, // chegou atrasada
+      { type: "received", poll: makePollView({ totalVotes: 1 }) }, // chegou atrasada
     );
 
     expect(readyPoll(state).poll.totalVotes).toBe(2);
@@ -134,7 +134,7 @@ describe("WebSocket actions", () => {
   it("marks the poll closed, and never reopens it", () => {
     const closed = pollReducer(loaded, { type: "closed", pollId: poll.id });
     const afterOldVote = pollReducer(closed, {
-      type: "voted",
+      type: "received",
       poll: makePollView({ totalVotes: 1 }),
     });
 

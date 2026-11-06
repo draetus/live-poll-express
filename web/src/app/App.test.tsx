@@ -40,10 +40,10 @@ describe("routes", () => {
     );
   });
 
-  it("renders the presentation page without the site header", () => {
+  it("renders the presentation page without the site header", async () => {
     renderApp("/p/AbC23xyz/present");
 
-    expect(screen.getByRole("heading", { name: "Poll AbC23xyz" })).toBeDefined();
+    expect(await screen.findByRole("heading", { name: "Best day?" })).toBeDefined();
     expect(screen.queryByRole("link", { name: "Live Poll" })).toBeNull();
   });
 

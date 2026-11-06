@@ -68,7 +68,8 @@ export function usePoll(pollId: string) {
   // useCallback: a MESMA função entre renderizações, então pode ir em dependências
   // de outros efeitos sem fazê-los rodar à toa.
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
-  const applyVote = useCallback((poll: PollView) => dispatch({ type: "voted", poll }), []);
+  // Aplica a resposta de um POST (voto ou encerramento), que traz a enquete inteira.
+  const applyPoll = useCallback((poll: PollView) => dispatch({ type: "received", poll }), []);
 
-  return { state, reload, applyVote };
+  return { state, reload, applyPoll };
 }

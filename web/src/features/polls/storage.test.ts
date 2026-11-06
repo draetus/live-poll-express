@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAdminToken, getVote, getVoterId, saveAdminToken, saveVote } from "./storage";
+import {
+  getAdminToken,
+  getVote,
+  getVoterId,
+  removeAdminToken,
+  saveAdminToken,
+  saveVote,
+} from "./storage";
 
 describe("voterId", () => {
   it("is a UUID and stays the same across calls", () => {
@@ -21,6 +28,16 @@ describe("votes and admin tokens", () => {
     expect(getVote("pollC")).toBeUndefined();
     expect(getAdminToken("pollA")).toBe("token-a");
     expect(getAdminToken("pollB")).toBeUndefined();
+  });
+
+  it("removes one admin token and keeps the others", () => {
+    saveAdminToken("pollA", "token-a");
+    saveAdminToken("pollB", "token-b");
+
+    removeAdminToken("pollA");
+
+    expect(getAdminToken("pollA")).toBeUndefined();
+    expect(getAdminToken("pollB")).toBe("token-b");
   });
 
   it("ignores corrupted data instead of crashing", () => {

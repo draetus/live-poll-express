@@ -22,7 +22,7 @@ export type PollState =
 export type PollAction =
   // REST
   | { type: "loaded"; poll: PollView } // GET da enquete: verdade completa
-  | { type: "voted"; poll: PollView } // resposta do POST de voto
+  | { type: "received"; poll: PollView } // resposta de um POST (voto ou encerramento)
   | { type: "notFound" }
   | { type: "failed"; message: string }
   // WebSocket
@@ -67,7 +67,7 @@ export function pollReducer(state: PollState, action: PollAction): PollState {
     case "snapshot":
       return ready(state, action.poll);
 
-    case "voted":
+    case "received":
       if (state.status !== "ready" || state.poll.id !== action.poll.id) return state;
       return { ...state, poll: newest(state.poll, action.poll) };
 

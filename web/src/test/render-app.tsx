@@ -1,6 +1,12 @@
 import { act, render } from "@testing-library/react";
 import { StrictMode } from "react";
-import { MemoryRouter, type NavigateFunction, useNavigate } from "react-router";
+import {
+  type Location,
+  MemoryRouter,
+  type NavigateFunction,
+  useLocation,
+  useNavigate,
+} from "react-router";
 import { AppRoutes } from "../app/App";
 import { RealtimeProvider } from "../app/RealtimeProvider";
 import { RealtimeClient } from "../lib/realtime-client";
@@ -19,11 +25,13 @@ export function renderApp(path: string, { strict = false } = {}) {
     random: () => 1,
   });
 
-  // Componente "espião" que só guarda a função navigate do React Router,
-  // para o teste mudar de URL como se o usuário usasse o botão voltar/avançar.
+  // Componente "espião" que guarda a função navigate e a URL atual do React Router:
+  // o teste pode mudar de URL (como o botão voltar/avançar) e conferir onde está.
   let navigateFn: NavigateFunction | undefined;
+  let currentLocation: Location | undefined;
   function CaptureNavigate() {
     navigateFn = useNavigate();
+    currentLocation = useLocation();
     return null;
   }
 
@@ -41,6 +49,7 @@ export function renderApp(path: string, { strict = false } = {}) {
     ...result,
     sockets,
     realtime,
+    location: () => currentLocation,
     navigate(to: string) {
       act(() => {
         void navigateFn?.(to);

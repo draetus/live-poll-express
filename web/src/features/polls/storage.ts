@@ -59,3 +59,8 @@ export function saveAdminToken(pollId: string, token: string): void {
   const tokens = read<Record<string, string>>(KEYS.adminTokens, {});
   write(KEYS.adminTokens, { ...tokens, [pollId]: token });
 }
+
+export function removeAdminToken(pollId: string): void {
+  const { [pollId]: _removed, ...rest } = read<Record<string, string>>(KEYS.adminTokens, {});
+  write(KEYS.adminTokens, rest);
+}

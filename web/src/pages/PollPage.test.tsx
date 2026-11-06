@@ -1,8 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { getVote, saveVote } from "../features/polls/storage";
-import { apiError, delayed, json, makePollView, mockApi } from "../test/mock-api";
+import { getAdminToken, getVote, saveAdminToken, saveVote } from "../features/polls/storage";
+import { apiError, delayed, json, type MockRoutes, makePollView, mockApi } from "../test/mock-api";
 import { renderApp } from "../test/render-app";
 
 const poll = makePollView();
@@ -244,5 +244,166 @@ describe("PollPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to voting" }));
     expect(screen.getAllByRole("radio")).toHaveLength(2);
+  });
+
+  describe("sharing", () => {
+    it("copies the poll link", async () => {
+      mockApi({ "GET /polls/pollAbc2": () => json(poll) });
+      // userEvent.setup() troca navigator.clipboard por um falso que guarda o texto.
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Copy link" }));
+
+      expect(await navigator.clipboard.readText()).toBe(`${window.location.origin}/p/pollAbc2`);
+      expect(screen.getByRole("button", { name: "Copied!" })).toBeDefined();
+    });
+
+    it("loads the QR code only when asked", async () => {
+      mockApi({ "GET /polls/pollAbc2": () => json(poll) });
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await screen.findByRole("heading", { name: "Best day?" });
+      expect(screen.queryByTitle("QR code to open this poll")).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Show QR code" }));
+
+      // findBy: o componente do QR é carregado de forma assíncrona (React.lazy)
+      expect(await screen.findByTitle("QR code to open this poll")).toBeDefined();
+    });
+  });
+
+  describe("admin", () => {
+    const closedPoll = makePollView({ closed: true });
+
+    function mockAdminApi(extra: MockRoutes = {}) {
+      return mockApi({
+        "GET /polls/pollAbc2": () => json(poll),
+        "POST /polls/pollAbc2/close": ({ headers }) =>
+          headers.get("X-Admin-Token") === "secret-token"
+            ? json(closedPoll)
+            : apiError(403, "FORBIDDEN"),
+        ...extra,
+      });
+    }
+
+    it("hides the admin panel from regular visitors", async () => {
+      mockAdminApi();
+      renderApp("/p/pollAbc2");
+
+      await screen.findByRole("heading", { name: "Best day?" });
+      expect(screen.queryByRole("button", { name: "Close poll" })).toBeNull();
+    });
+
+    it("shows the admin panel to the creator (token saved at creation)", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      mockAdminApi();
+      renderApp("/p/pollAbc2");
+
+      expect(await screen.findByRole("button", { name: "Close poll" })).toBeDefined();
+    });
+
+    it("saves the token from an admin link and removes it from the URL", async () => {
+      mockAdminApi();
+      const app = renderApp("/p/pollAbc2#admin=secret-token");
+
+      expect(await screen.findByRole("button", { name: "Close poll" })).toBeDefined();
+      expect(getAdminToken("pollAbc2")).toBe("secret-token");
+      expect(app.location()?.hash).toBe("");
+      expect(app.location()?.pathname).toBe("/p/pollAbc2");
+    });
+
+    it("handles the admin link under StrictMode too", async () => {
+      mockAdminApi();
+      const app = renderApp("/p/pollAbc2#admin=secret-token", { strict: true });
+
+      expect(await screen.findByRole("button", { name: "Close poll" })).toBeDefined();
+      expect(getAdminToken("pollAbc2")).toBe("secret-token");
+      expect(app.location()?.hash).toBe("");
+    });
+
+    it("ignores a malformed token in the link", async () => {
+      mockAdminApi();
+      renderApp("/p/pollAbc2#admin=%3Cscript%3E");
+
+      await screen.findByRole("heading", { name: "Best day?" });
+      expect(screen.queryByRole("button", { name: "Close poll" })).toBeNull();
+      expect(getAdminToken("pollAbc2")).toBeUndefined();
+    });
+
+    it("asks for confirmation, then closes the poll with the token", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      const fetchMock = mockAdminApi();
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Close poll" }));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      await user.click(screen.getByRole("button", { name: "Close poll" }));
+      await user.click(screen.getByRole("button", { name: "Yes, close it" }));
+
+      expect(await screen.findByText("This poll is closed. The results are final.")).toBeDefined();
+      expect(screen.getByText("Closed")).toBeDefined();
+      expect(screen.queryByRole("radio")).toBeNull();
+      const closeCalls = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/close"));
+      expect(closeCalls).toHaveLength(1); // o "Cancel" não chamou a API
+    });
+
+    it("forgets a token the API rejects", async () => {
+      saveAdminToken("pollAbc2", "wrong-token");
+      mockAdminApi();
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Close poll" }));
+      await user.click(screen.getByRole("button", { name: "Yes, close it" }));
+
+      expect(await screen.findByText(/This admin link is not valid/)).toBeDefined();
+      expect(screen.queryByRole("button", { name: "Close poll" })).toBeNull();
+      expect(getAdminToken("pollAbc2")).toBeUndefined();
+    });
+
+    it("keeps the panel and shows the error if closing fails for another reason", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      mockAdminApi({
+        "POST /polls/pollAbc2/close": () => apiError(500, "INTERNAL_ERROR"),
+      });
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Close poll" }));
+      await user.click(screen.getByRole("button", { name: "Yes, close it" }));
+
+      expect((await screen.findByRole("alert")).textContent).toMatch(/Something went wrong/);
+      expect(screen.getByRole("button", { name: "Yes, close it" })).toBeDefined();
+      expect(getAdminToken("pollAbc2")).toBe("secret-token");
+    });
+
+    it("copies the admin link with the token", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      mockAdminApi();
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Copy admin link" }));
+
+      expect(await navigator.clipboard.readText()).toBe(
+        `${window.location.origin}/p/pollAbc2#admin=secret-token`,
+      );
+    });
+
+    it("hides sharing and admin when the poll is gone from the server", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      mockAdminApi();
+      const app = renderApp("/p/pollAbc2");
+      await screen.findByRole("heading", { name: "Best day?" });
+      const socket = app.sockets.latest();
+      act(() => socket.open());
+
+      act(() => socket.receive({ type: "poll:removed", pollId: "pollAbc2" }));
+
+      expect(screen.queryByRole("button", { name: "Close poll" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Copy link" })).toBeNull();
+    });
   });
 });
