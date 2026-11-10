@@ -15,7 +15,7 @@ export function LiveStatus({ viewers, connection }: LiveStatusProps) {
     <p
       role="status"
       aria-live="polite"
-      className="inline-flex items-center gap-2 text-sm text-slate-500 tabular-nums"
+      className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 tabular-nums"
     >
       <span
         aria-hidden="true"

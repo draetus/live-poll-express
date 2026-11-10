@@ -68,7 +68,7 @@ export function AdminPanel({ poll, token, onClosed, onForbidden, onStale }: Admi
           Copy admin link
         </CopyButton>
         <details>
-          <summary className="cursor-pointer text-slate-500">Show admin link</summary>
+          <summary className="cursor-pointer text-slate-500 dark:text-slate-400">Show admin link</summary>
           <input
             readOnly
             value={link}

@@ -32,7 +32,7 @@ export function FeaturedPolls() {
                 className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 hover:border-brand-500 dark:border-slate-800 dark:bg-slate-900"
               >
                 <span>{poll.question}</span>
-                <span className="shrink-0 text-sm text-slate-500 tabular-nums">
+                <span className="shrink-0 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
                   {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
                 </span>
               </Link>

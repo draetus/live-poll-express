@@ -12,3 +12,9 @@
   --color-brand-600: var(--color-indigo-600);
   --color-brand-700: var(--color-indigo-700);
 }
+
+/* Diz ao navegador que a página suporta os dois temas: campos nativos, barras de rolagem
+   e o triângulo do <details> passam a seguir o modo escuro do sistema operacional. */
+:root {
+  color-scheme: light dark;
+}

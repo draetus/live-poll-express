@@ -19,7 +19,7 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <footer className="py-6 text-center text-xs text-slate-500">
+      <footer className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
         Express 5 · ws · React — portfolio project
       </footer>
     </div>

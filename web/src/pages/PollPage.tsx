@@ -29,7 +29,7 @@ function PollScreen({ pollId }: { pollId: string }) {
   const admin = useAdminToken(pollId);
 
   if (state.status === "loading") {
-    return <p className="text-slate-500">Loading poll…</p>;
+    return <p className="text-slate-500 dark:text-slate-400">Loading poll…</p>;
   }
 
   if (state.status === "not-found") {
@@ -122,7 +122,7 @@ function PollDetails({
         )}
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <p className="text-sm text-slate-500 tabular-nums">
+          <p className="text-sm text-slate-500 dark:text-slate-400 tabular-nums">
             {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
           </p>
           {!ended && <LiveStatus viewers={viewers} connection={connection} />}

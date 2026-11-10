@@ -55,7 +55,7 @@ function PresentScreen({ pollId }: { pollId: string }) {
           )}
           <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">{poll.question}</h1>
         </div>
-        <Link to={`/p/${poll.id}`} className="shrink-0 text-sm text-slate-500 underline">
+        <Link to={`/p/${poll.id}`} className="shrink-0 text-sm text-slate-500 dark:text-slate-400 underline">
           Exit
         </Link>
       </header>
@@ -82,7 +82,7 @@ function PresentScreen({ pollId }: { pollId: string }) {
         {!poll.closed && !ended && (
           <figure className="flex flex-col items-center gap-2">
             <QrCode value={url} size={176} title="QR code to vote on this poll" />
-            <figcaption className="text-center text-sm text-slate-500">
+            <figcaption className="text-center text-sm text-slate-500 dark:text-slate-400">
               Scan to vote
               <br />
               <span className="font-mono">{url.replace(/^https?:\/\//, "")}</span>
@@ -96,7 +96,7 @@ function PresentScreen({ pollId }: { pollId: string }) {
 
 function FullScreen({ children }: { children: ReactNode }) {
   return (
-    <main className="grid min-h-dvh place-items-center p-8 text-center text-3xl text-slate-500">
+    <main className="grid min-h-dvh place-items-center p-8 text-center text-3xl text-slate-500 dark:text-slate-400">
       <div>{children}</div>
     </main>
   );

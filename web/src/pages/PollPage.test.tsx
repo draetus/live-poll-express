@@ -1,6 +1,6 @@
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getAdminToken, getVote, saveAdminToken, saveVote } from "../features/polls/storage";
 import { apiError, delayed, json, type MockRoutes, makePollView, mockApi } from "../test/mock-api";
 import { renderApp } from "../test/render-app";
@@ -68,6 +68,24 @@ describe("PollPage", () => {
     expect(await screen.findByText("You have already voted on this poll.")).toBeDefined();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(getVote("pollAbc2")).toEqual({ optionId: null });
+  });
+
+  it("reloads and explains when the poll closed between loading and voting", async () => {
+    let gets = 0;
+    mockApi({
+      // 1º GET: aberta. Depois do 409, o GET de recarga já a traz encerrada.
+      "GET /polls/pollAbc2": () => json(++gets === 1 ? poll : { ...poll, closed: true }),
+      "POST /polls/pollAbc2/votes": () => apiError(409, "POLL_CLOSED"),
+    });
+    const user = userEvent.setup();
+    renderApp("/p/pollAbc2");
+
+    await user.click(await screen.findByRole("radio", { name: "Saturday" }));
+    await user.click(screen.getByRole("button", { name: "Vote" }));
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/closed/);
+    expect(await screen.findByText("Closed")).toBeDefined();
+    expect(screen.queryByRole("radio")).toBeNull();
   });
 
   it("shows a closed poll with results and no voting", async () => {
@@ -259,6 +277,18 @@ describe("PollPage", () => {
       expect(screen.getByRole("button", { name: "Copied!" })).toBeDefined();
     });
 
+    it("says so when the browser refuses to copy (e.g. page opened over plain http)", async () => {
+      mockApi({ "GET /polls/pollAbc2": () => json(poll) });
+      const user = userEvent.setup();
+      // Depois do setup: o userEvent instala o clipboard falso dele, e nós o quebramos.
+      vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("NotAllowedError"));
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Copy link" }));
+
+      expect(await screen.findByRole("button", { name: "Could not copy" })).toBeDefined();
+    });
+
     it("loads the QR code only when asked", async () => {
       mockApi({ "GET /polls/pollAbc2": () => json(poll) });
       const user = userEvent.setup();
@@ -377,6 +407,22 @@ describe("PollPage", () => {
       expect((await screen.findByRole("alert")).textContent).toMatch(/Something went wrong/);
       expect(screen.getByRole("button", { name: "Yes, close it" })).toBeDefined();
       expect(getAdminToken("pollAbc2")).toBe("secret-token");
+    });
+
+    it("shows 'not found' if the server forgot the poll before it was closed", async () => {
+      saveAdminToken("pollAbc2", "secret-token");
+      let gets = 0;
+      mockAdminApi({
+        "GET /polls/pollAbc2": () => (++gets === 1 ? json(poll) : apiError(404, "POLL_NOT_FOUND")),
+        "POST /polls/pollAbc2/close": () => apiError(404, "POLL_NOT_FOUND"),
+      });
+      const user = userEvent.setup();
+      renderApp("/p/pollAbc2");
+
+      await user.click(await screen.findByRole("button", { name: "Close poll" }));
+      await user.click(screen.getByRole("button", { name: "Yes, close it" }));
+
+      expect(await screen.findByRole("heading", { name: "Poll not found" })).toBeDefined();
     });
 
     it("copies the admin link with the token", async () => {

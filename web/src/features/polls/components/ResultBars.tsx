@@ -30,7 +30,7 @@ export function ResultBars({ poll, myOptionId, size = "normal" }: ResultBarsProp
                 {option.text}
                 {isWinner && " 🏆"}
                 {myOptionId === option.id && (
-                  <span className="ml-2 rounded bg-brand-100 px-1.5 py-0.5 text-xs text-brand-700">
+                  <span className="ml-2 rounded bg-brand-100 px-1.5 py-0.5 text-xs text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
                     your vote
                   </span>
                 )}
