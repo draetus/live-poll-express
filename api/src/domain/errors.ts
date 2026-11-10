@@ -48,3 +48,9 @@ export class ForbiddenError extends AppError {
     super(403, "FORBIDDEN", "Missing or invalid admin token");
   }
 }
+
+export class RateLimitedError extends AppError {
+  constructor(readonly retryAfterSeconds: number) {
+    super(429, "RATE_LIMITED", `Too many requests, retry in ${retryAfterSeconds} s`);
+  }
+}

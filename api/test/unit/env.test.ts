@@ -11,7 +11,18 @@ describe("parseEnv", () => {
       LOG_LEVEL: "info",
       CORS_ORIGINS: ["http://localhost:5173"],
       MAX_POLLS: 500,
+      RATE_LIMIT_CREATE_PER_MIN: 5,
+      RATE_LIMIT_VOTE_PER_MIN: 30,
+      WS_MESSAGES_PER_10S: 20,
     });
+  });
+
+  it("reads the limits from the environment", () => {
+    const env = parseEnv({ RATE_LIMIT_CREATE_PER_MIN: "2", WS_MESSAGES_PER_10S: "50" });
+
+    expect(env.RATE_LIMIT_CREATE_PER_MIN).toBe(2);
+    expect(env.WS_MESSAGES_PER_10S).toBe(50);
+    expect(() => parseEnv({ RATE_LIMIT_VOTE_PER_MIN: "0" })).toThrow(/RATE_LIMIT_VOTE_PER_MIN/);
   });
 
   it("coerces PORT from string to number", () => {

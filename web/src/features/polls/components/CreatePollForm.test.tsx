@@ -19,15 +19,31 @@ describe("validatePoll", () => {
   });
 });
 
-function setup() {
+function setup({ disabled = false } = {}) {
   const onSubmit = vi.fn(async () => {});
   // userEvent simula um usuário de verdade: foco, teclado, clique (não só "dispara um evento")
   const user = userEvent.setup();
-  render(<CreatePollForm onSubmit={onSubmit} />);
+  render(<CreatePollForm onSubmit={onSubmit} disabled={disabled} />);
   return { onSubmit, user };
 }
 
 describe("CreatePollForm", () => {
+  it("can be filled but not submitted while disabled (server waking up)", async () => {
+    const { onSubmit, user } = setup({ disabled: true });
+
+    await user.type(screen.getByLabelText("Question"), "Best day?");
+    await user.type(screen.getByLabelText("Option 1"), "Saturday");
+    // Pela especificação do HTML, Enter num campo NÃO envia o form se o botão de envio
+    // estiver desabilitado. Por isso o componente não precisa de uma checagem extra.
+    await user.type(screen.getByLabelText("Option 2"), "Sunday{Enter}");
+
+    expect(screen.getByRole("button", { name: "Waiting for the server…" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("submits the trimmed question and options", async () => {
     const { onSubmit, user } = setup();
 

@@ -69,6 +69,29 @@ describe("request", () => {
     await expect(request("/x", { timeoutMs: 20 })).rejects.toMatchObject({ code: "TIMEOUT" });
   });
 
+  it("reads Retry-After from a 429", async () => {
+    stubFetch(async () => {
+      const res = apiError(429, "RATE_LIMITED");
+      res.headers.set("Retry-After", "42");
+      return res;
+    });
+
+    await expect(request("/polls")).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      retryAfterSeconds: 42,
+    });
+  });
+
+  it("ignores a Retry-After that is not a positive number of seconds", async () => {
+    stubFetch(async () => {
+      const res = apiError(429, "RATE_LIMITED");
+      res.headers.set("Retry-After", "Wed, 21 Oct 2015 07:28:00 GMT");
+      return res;
+    });
+
+    await expect(request("/polls")).rejects.toMatchObject({ retryAfterSeconds: undefined });
+  });
+
   it("re-throws the caller's own abort untouched, so it can be ignored", async () => {
     hangingFetch();
     const controller = new AbortController();

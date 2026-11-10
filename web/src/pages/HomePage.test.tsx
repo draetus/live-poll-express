@@ -69,4 +69,23 @@ describe("HomePage", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/Too many attempts/);
     expect(screen.getByLabelText("Question")).toHaveProperty("value", "Pizza or burger?");
   });
+
+  it("says how long to wait when the API sends Retry-After", async () => {
+    mockApi({
+      ...baseRoutes(),
+      "POST /polls": () => {
+        const res = apiError(429, "RATE_LIMITED");
+        res.headers.set("Retry-After", "42");
+        return res;
+      },
+    });
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await fillForm(user);
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Too many attempts. Please try again in 42 seconds.",
+    );
+  });
 });

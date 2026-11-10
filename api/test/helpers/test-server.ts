@@ -19,7 +19,16 @@ export async function startTestServer(
   options: BuildServerOptions = {},
 ): Promise<TestServer> {
   const { server, wss, service } = buildServer(
-    parseEnv({ NODE_ENV: "test", LOG_LEVEL: "silent", CORS_ORIGINS: TEST_ORIGIN, ...env }),
+    parseEnv({
+      NODE_ENV: "test",
+      LOG_LEVEL: "silent",
+      CORS_ORIGINS: TEST_ORIGIN,
+      // Os testes criam e votam muito, todos do mesmo IP. Limites altos aqui; o rate
+      // limit tem testes próprios, que passam valores baixos pelo `env`.
+      RATE_LIMIT_CREATE_PER_MIN: "10000",
+      RATE_LIMIT_VOTE_PER_MIN: "10000",
+      ...env,
+    }),
     options,
   );
 

@@ -2,6 +2,7 @@ import type { PollView } from "@shared/api";
 import type { ServerMessage } from "@shared/ws";
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { useRealtime } from "../../../app/RealtimeProvider";
+import { useServerStatus } from "../../../app/ServerStatusProvider";
 import { errorMessage } from "../../../lib/error-messages";
 import { ApiError, isAbortError } from "../../../lib/http";
 import { pollsApi } from "../api";
@@ -25,9 +26,13 @@ export function usePoll(pollId: string) {
   const [state, dispatch] = useReducer(pollReducer, initialPollState);
   // Incrementar este número faz o efeito rodar de novo, ou seja, recarrega a enquete.
   const [reloadCount, setReloadCount] = useState(0);
+  // Durante o cold start, o GET esperaria até o timeout e mostraria um erro. Melhor
+  // aguardar o /health responder: a página fica em "Loading…" com o aviso de cold start.
+  const online = useServerStatus().status === "online";
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadCount existe só para disparar o efeito de novo
   useEffect(() => {
+    if (!online) return;
     const controller = new AbortController();
 
     pollsApi.get(pollId, controller.signal).then(
@@ -43,7 +48,7 @@ export function usePoll(pollId: string) {
     );
 
     return () => controller.abort();
-  }, [pollId, reloadCount]);
+  }, [pollId, reloadCount, online]);
 
   useEffect(() => {
     // Ordem: primeiro os ouvintes, depois a assinatura — nenhuma mensagem se perde.

@@ -1,8 +1,9 @@
 import type { CreatePollRequest } from "@shared/api";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ApiStatus } from "../components/ApiStatus";
+import { useServerStatus } from "../app/ServerStatusProvider";
 import { Card } from "../components/Card";
+import { DemoBanner } from "../components/DemoBanner";
 import { pollsApi } from "../features/polls/api";
 import { CreatePollForm } from "../features/polls/components/CreatePollForm";
 import { FeaturedPolls } from "../features/polls/components/FeaturedPolls";
@@ -12,6 +13,7 @@ import { errorMessage } from "../lib/error-messages";
 export function HomePage() {
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const online = useServerStatus().status === "online";
 
   async function handleCreate(input: CreatePollRequest) {
     setSubmitError(null);
@@ -34,11 +36,11 @@ export function HomePage() {
         <p className="text-slate-600 dark:text-slate-400">
           Votes appear on every screen in real time, without refreshing the page.
         </p>
-        <ApiStatus />
+        <DemoBanner />
       </section>
 
       <Card>
-        <CreatePollForm onSubmit={handleCreate} submitError={submitError} />
+        <CreatePollForm onSubmit={handleCreate} submitError={submitError} disabled={!online} />
       </Card>
 
       <FeaturedPolls />

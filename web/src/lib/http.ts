@@ -11,6 +11,8 @@ export class ApiError extends Error {
     readonly code: ClientErrorCode,
     message: string,
     readonly details?: ApiErrorBody["error"]["details"],
+    /** Em um 429: quantos segundos a API pediu para esperar (header Retry-After). */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -65,7 +67,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (!response.ok) {
     if (isApiErrorBody(data)) {
       const { code, message, details } = data.error;
-      throw new ApiError(response.status, code, message, details);
+      throw new ApiError(response.status, code, message, details, retryAfter(response));
     }
     throw new ApiError(
       response.status,
@@ -75,6 +77,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return data as T;
+}
+
+// Retry-After pode vir em segundos ("42") ou como data; a API usa segundos.
+// Qualquer outra coisa vira undefined, e a mensagem de erro fica genérica.
+function retryAfter(response: Response): number | undefined {
+  const seconds = Number(response.headers.get("Retry-After"));
+  return Number.isInteger(seconds) && seconds > 0 ? seconds : undefined;
 }
 
 /** true quando o erro é o nosso próprio cancelamento (cleanup), e não uma falha real. */

@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { config } from "../lib/config";
 import { RealtimeClient } from "../lib/realtime-client";
+import { useServerStatus } from "./ServerStatusProvider";
 
 // Context: um jeito de entregar um valor a QUALQUER componente abaixo na árvore,
 // sem passar por props de pai para filho em cada nível ("prop drilling").
@@ -15,13 +16,18 @@ interface RealtimeProviderProps {
 export function RealtimeProvider({ children, client: injected }: RealtimeProviderProps) {
   // useState com função: o cliente é criado UMA vez por montagem, não a cada render.
   const [client] = useState(() => injected ?? new RealtimeClient({ url: config.wsUrl }));
+  const online = useServerStatus().status === "online";
 
   useEffect(() => {
+    // Cold start: enquanto o servidor acorda, tentar o WebSocket só queimaria tentativas
+    // do backoff (que cresceria até 15 s). As páginas já podem assinar enquetes:
+    // o cliente guarda a intenção e conecta assim que start() for chamado.
+    if (!online) return;
     client.start();
     // No StrictMode (dev), este cleanup roda e o efeito roda de novo:
     // por isso stop() precisa ser reversível com start().
     return () => client.stop();
-  }, [client]);
+  }, [client, online]);
 
   return <RealtimeContext.Provider value={client}>{children}</RealtimeContext.Provider>;
 }

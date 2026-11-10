@@ -21,6 +21,11 @@ const envSchema = z.object({
   CORS_ORIGINS: originList.default(["http://localhost:5173"]),
   // Máximo de enquetes criadas por usuários em memória (as do seed não contam).
   MAX_POLLS: z.coerce.number().int().min(1).default(500),
+  // Rate limit por IP, em requisições por minuto.
+  RATE_LIMIT_CREATE_PER_MIN: z.coerce.number().int().min(1).default(5),
+  RATE_LIMIT_VOTE_PER_MIN: z.coerce.number().int().min(1).default(30),
+  // Mensagens que cada conexão WebSocket pode mandar a cada 10 s.
+  WS_MESSAGES_PER_10S: z.coerce.number().int().min(1).default(20),
 });
 
 export type Env = z.infer<typeof envSchema>;

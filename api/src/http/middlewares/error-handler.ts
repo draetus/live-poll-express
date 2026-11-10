@@ -1,7 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { z } from "zod";
 import type { ApiErrorBody, ErrorCode } from "../../../../shared/api.js";
-import { AppError, RouteNotFoundError } from "../../domain/errors.js";
+import { AppError, RateLimitedError, RouteNotFoundError } from "../../domain/errors.js";
 import type { Logger } from "../../lib/logger.js";
 
 function errorBody(
@@ -56,6 +56,8 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     }
 
     if (err instanceof AppError) {
+      // Header padrão do HTTP: diz ao cliente quantos segundos esperar antes de tentar de novo.
+      if (err instanceof RateLimitedError) res.set("Retry-After", String(err.retryAfterSeconds));
       res.status(err.status).json(errorBody(err.code, err.message));
       return;
     }

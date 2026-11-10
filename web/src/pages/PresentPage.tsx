@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { QrCode } from "../components/QrCode";
+import { ServerWakeBanner } from "../components/ServerWakeBanner";
 import { LiveStatus } from "../features/polls/components/LiveStatus";
 import { ResultBars } from "../features/polls/components/ResultBars";
 import { usePoll } from "../features/polls/hooks/usePoll";
@@ -17,7 +18,14 @@ function PresentScreen({ pollId }: { pollId: string }) {
   const { state, reload } = usePoll(pollId);
 
   if (state.status === "loading") {
-    return <FullScreen>Loading poll…</FullScreen>;
+    return (
+      <FullScreen>
+        Loading poll…
+        <div className="mt-8 text-left text-base">
+          <ServerWakeBanner />
+        </div>
+      </FullScreen>
+    );
   }
   if (state.status === "not-found") {
     return <FullScreen>This poll does not exist or has expired.</FullScreen>;

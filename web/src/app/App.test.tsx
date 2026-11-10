@@ -19,16 +19,9 @@ describe("routes", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       "Create a poll. Share the link. Watch it live.",
     );
+    expect(screen.getByText(/polls are kept in memory only/)).toBeDefined();
     // findBy* espera (até 1 s) o texto aparecer: o fetch é assíncrono
-    expect(await screen.findByText("API online")).toBeDefined();
-  });
-
-  it("shows 'API offline' when the health check fails", async () => {
-    mockApi({ "GET /health": () => Promise.reject(new TypeError("Failed to fetch")) });
-
-    renderApp("/");
-
-    expect(await screen.findByText("API offline")).toBeDefined();
+    expect(await screen.findByRole("heading", { name: "Try one of these" })).toBeDefined();
   });
 
   it("renders the poll page for /p/:pollId", async () => {

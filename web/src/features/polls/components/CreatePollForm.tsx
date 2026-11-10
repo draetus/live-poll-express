@@ -30,9 +30,11 @@ interface CreatePollFormProps {
   onSubmit(input: CreatePollRequest): Promise<void>;
   /** Mensagem de erro vinda da API, mostrada abaixo do botão. */
   submitError?: string | null;
+  /** Servidor ainda acordando: dá para preencher, mas não enviar. */
+  disabled?: boolean;
 }
 
-export function CreatePollForm({ onSubmit, submitError }: CreatePollFormProps) {
+export function CreatePollForm({ onSubmit, submitError, disabled = false }: CreatePollFormProps) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -137,8 +139,8 @@ export function CreatePollForm({ onSubmit, submitError }: CreatePollFormProps) {
       </fieldset>
 
       <div className="space-y-2">
-        <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? "Creating…" : "Create poll"}
+        <Button type="submit" disabled={submitting || disabled} className="w-full">
+          {submitting ? "Creating…" : disabled ? "Waiting for the server…" : "Create poll"}
         </Button>
         {submitError && (
           <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">

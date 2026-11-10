@@ -43,7 +43,7 @@ export function buildServer(env: Env, options: BuildServerOptions = {}) {
     logger,
     isAllowedOrigin: makeOriginCheck(env.CORS_ORIGINS),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
-    messageLimit: options.wsMessageLimit,
+    messageLimit: options.wsMessageLimit ?? { max: env.WS_MESSAGES_PER_10S, windowMs: 10_000 },
   });
 
   return { app, server, wss, logger, service };

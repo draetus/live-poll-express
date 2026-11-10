@@ -20,5 +20,10 @@ const MESSAGES: Record<ClientErrorCode, string> = {
 };
 
 export function errorMessage(err: unknown): string {
-  return err instanceof ApiError ? MESSAGES[err.code] : MESSAGES.INTERNAL_ERROR;
+  if (!(err instanceof ApiError)) return MESSAGES.INTERNAL_ERROR;
+  if (err.code === "RATE_LIMITED" && err.retryAfterSeconds) {
+    const s = err.retryAfterSeconds;
+    return `Too many attempts. Please try again in ${s} ${s === 1 ? "second" : "seconds"}.`;
+  }
+  return MESSAGES[err.code];
 }

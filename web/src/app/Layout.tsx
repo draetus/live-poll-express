@@ -1,4 +1,5 @@
 import { Link, Outlet } from "react-router";
+import { ServerWakeBanner } from "../components/ServerWakeBanner";
 
 export function Layout() {
   return (
@@ -12,7 +13,8 @@ export function Layout() {
         </Link>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 space-y-6">
+        <ServerWakeBanner />
         {/* <Outlet /> é onde a rota filha que casou com a URL é renderizada */}
         <Outlet />
       </main>

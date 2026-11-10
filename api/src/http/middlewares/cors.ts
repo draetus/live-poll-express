@@ -11,6 +11,9 @@ export function corsMiddleware(allowedOrigins: string[]): RequestHandler {
     // X-Admin-Token é um header "não simples": força o navegador a fazer preflight
     // e precisa estar liberado aqui, senão o POST /polls/:id/close é bloqueado.
     allowedHeaders: ["Content-Type", "X-Admin-Token"],
+    // Por padrão, o navegador esconde do JavaScript quase todos os headers de uma resposta
+    // de outra origem. Sem isto, o front não conseguiria ler o Retry-After de um 429.
+    exposedHeaders: ["Retry-After"],
     maxAge: 600, // o navegador pode guardar o resultado do preflight por 10 min
   });
 }

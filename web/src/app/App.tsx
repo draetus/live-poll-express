@@ -5,6 +5,7 @@ import { PollPage } from "../pages/PollPage";
 import { PresentPage } from "../pages/PresentPage";
 import { Layout } from "./Layout";
 import { RealtimeProvider } from "./RealtimeProvider";
+import { ServerStatusProvider } from "./ServerStatusProvider";
 
 // Separado do <App> para os testes poderem trocar o BrowserRouter por um MemoryRouter.
 export function AppRoutes() {
@@ -25,10 +26,13 @@ export function AppRoutes() {
 export function App() {
   return (
     <BrowserRouter>
-      {/* Uma conexão WebSocket por aba, disponível para qualquer página */}
-      <RealtimeProvider>
-        <AppRoutes />
-      </RealtimeProvider>
+      {/* Por fora: o WebSocket só conecta depois que o servidor responde ao /health */}
+      <ServerStatusProvider>
+        {/* Uma conexão WebSocket por aba, disponível para qualquer página */}
+        <RealtimeProvider>
+          <AppRoutes />
+        </RealtimeProvider>
+      </ServerStatusProvider>
     </BrowserRouter>
   );
 }
